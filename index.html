@@ -93,10 +93,13 @@
   /* телефон: картинки крупнее относительно экрана и дальше друг от друга */
   /* телефон в альбоме определяем по малой ВЫСОТЕ: по ширине нельзя —
      большие айфоны в лендскейпе шире 900px и выпадали из правила */
-  @media (max-height: 500px) and (orientation: landscape) {
-    #stage { gap: 26vw; }
+  /* Никаких пиксельных границ: раскладка зависит только от ориентации,
+     а размеры — от vh/vw, поэтому сами подстраиваются под любой экран
+     (телефон в Safari и PWA, десктоп). Ширина больше высоты → в ряд. */
+  @media (orientation: landscape) {
+    #stage { gap: min(30vh, 24vw); }
     .card .emoji { font-size: min(44vh, 34vw); }
-    /* в альбомной ориентации 4 карточки — одним рядом, так они крупнее */
+    /* 4 карточки — одним рядом, так они крупнее */
     #stage.four {
       grid-template-columns: repeat(4, max-content);
       gap: 4vw;
@@ -104,10 +107,10 @@
       padding-top: calc(env(safe-area-inset-top, 0px) + 12vh);
       padding-bottom: 1vh;
     }
-    #stage.four .card .emoji { font-size: min(55vh, 20vw); }
-    #question { font-size: min(10vh, 6vw); top: calc(env(safe-area-inset-top, 0px) + 2vh); }
+    #stage.four .card .emoji { font-size: min(50vh, 20vw); }
+    #question { font-size: min(9vh, 5vw); top: calc(env(safe-area-inset-top, 0px) + 2vh); }
   }
-  @media (max-width: 900px) and (orientation: portrait) {
+  @media (orientation: portrait) {
     #stage {
       flex-direction: column;
       gap: 5vh;
