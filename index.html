@@ -94,13 +94,15 @@
   @media (max-width: 900px) and (orientation: landscape) {
     #stage { gap: 26vw; }
     .card .emoji { font-size: min(44vh, 34vw); }
+    /* в альбомной ориентации 4 карточки — одним рядом, так они крупнее */
     #stage.four {
-      gap: 1vh 16vw;
+      grid-template-columns: repeat(4, max-content);
+      gap: 4vw;
       box-sizing: border-box;
       padding-top: calc(env(safe-area-inset-top, 0px) + 12vh);
       padding-bottom: 1vh;
     }
-    #stage.four .card .emoji { font-size: min(28vh, 20vw); }
+    #stage.four .card .emoji { font-size: min(55vh, 20vw); }
     #question { font-size: min(10vh, 6vw); top: calc(env(safe-area-inset-top, 0px) + 2vh); }
   }
   @media (max-width: 900px) and (orientation: portrait) {
