@@ -43,6 +43,17 @@
     justify-content: center;
     gap: 22vmin;
   }
+  /* режим 4 карточек: сетка 2×2 */
+  #stage.four {
+    display: grid;
+    grid-template-columns: repeat(2, max-content);
+    justify-content: center;
+    align-content: center;
+    gap: 3vmin 12vmin;
+  }
+  #stage.four .card .emoji {
+    font-size: 25vmin;
+  }
   .card {
     text-align: center;
     cursor: pointer;
@@ -83,6 +94,13 @@
   @media (max-width: 900px) and (orientation: landscape) {
     #stage { gap: 26vw; }
     .card .emoji { font-size: min(44vh, 34vw); }
+    #stage.four {
+      gap: 1vh 16vw;
+      box-sizing: border-box;
+      padding-top: calc(env(safe-area-inset-top, 0px) + 12vh);
+      padding-bottom: 1vh;
+    }
+    #stage.four .card .emoji { font-size: min(28vh, 20vw); }
     #question { font-size: min(10vh, 6vw); top: calc(env(safe-area-inset-top, 0px) + 2vh); }
   }
   @media (max-width: 900px) and (orientation: portrait) {
@@ -95,6 +113,8 @@
       padding-bottom: 2vh;
     }
     .card .emoji { font-size: min(26vh, 58vw); }
+    #stage.four { gap: 3vh 6vw; }
+    #stage.four .card .emoji { font-size: min(20vh, 40vw); }
     #question { font-size: min(4.5vh, 9vw); top: calc(env(safe-area-inset-top, 0px) + 1.5vh); }
   }
   #confetti {
@@ -170,23 +190,45 @@
     font: 500 14px -apple-system, system-ui, sans-serif;
     color: rgba(255, 255, 255, 0.35);
   }
+  #modeRow {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 14px;
+  }
+  #modeRow button {
+    pointer-events: auto;
+    touch-action: auto;
+    padding: 10px 18px;
+    font: 600 16px -apple-system, system-ui, sans-serif;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 12px;
+  }
+  #modeRow button.sel {
+    background: rgba(110, 150, 255, 0.45);
+    border-color: rgba(160, 190, 255, 0.9);
+  }
 </style>
 </head>
 <body>
 <div id="question"></div>
-<div id="stage">
-  <div class="card" id="card0"></div>
-  <div class="card" id="card1"></div>
-</div>
+<div id="stage"></div>
 <canvas id="confetti"></canvas>
 <div id="hint">
   <div>Нажми любую клавишу<br>или коснись экрана 🎲</div>
   <input id="nameInput" type="text" autocomplete="off" autocapitalize="words" placeholder="Имя малыша">
+  <div id="modeRow">
+    <button id="mode2">2 карточки</button>
+    <button id="mode4">4 карточки</button>
+  </div>
   <div id="nameNote">игра будет иногда звать малыша по имени</div>
 </div>
 <script>
 (() => {
-  const cards = [document.getElementById('card0'), document.getElementById('card1')];
+  const stage = document.getElementById('stage');
+  let cards = []; // создаются под выбранный режим (2 или 4)
   const questionEl = document.getElementById('question');
   const hint = document.getElementById('hint');
   const nameInput = document.getElementById('nameInput');
@@ -283,7 +325,7 @@
     { e: '🥚', w: 'яичко' },
     // «мороженое» Милена читает как «мороженый» (ударение не лечит),
     // поэтому детская форма; варианты можно послушать в ?debug=1
-    { e: '🍦', w: 'мороженка', alt: ['эскимо'] },
+    { e: '🍦', w: 'мороженка' },
     { e: '🍪', w: 'печенье', alt: ['печенька'] },
     { e: '🎂', w: 'тортик' },
     { e: '🍬', w: 'конфетка' },
@@ -379,6 +421,25 @@
     nameInput.addEventListener(ev, (e) => e.stopPropagation()));
   // имя произносим как набрано, всегда через запятую внутри фразы:
   // отдельным выкриком («Артур!») и со знаком ударения синтезатор жуёт «р»
+
+  // ----- режим: сколько карточек на экране -----
+  let cardCount = parseInt(localStorage.getItem('cardCount'), 10);
+  if (cardCount !== 2 && cardCount !== 4) cardCount = 2;
+  const modeBtns = { 2: document.getElementById('mode2'), 4: document.getElementById('mode4') };
+  function setMode(n) {
+    cardCount = n;
+    localStorage.setItem('cardCount', n);
+    modeBtns[2].classList.toggle('sel', n === 2);
+    modeBtns[4].classList.toggle('sel', n === 4);
+  }
+  setMode(cardCount);
+  [2, 4].forEach((n) => {
+    modeBtns[n].addEventListener('pointerdown', (e) => e.stopPropagation());
+    modeBtns[n].addEventListener('pointerup', (e) => {
+      e.stopPropagation();
+      setMode(n);
+    });
+  });
 
   // ----- статистика угадываний: неугаданное загадываем чаще -----
   let stats = {};
@@ -604,8 +665,8 @@
   // ----- игра -----
   let started = false;
   let busy = false;
-  let pair = null;
-  let targetSide = 0;
+  let items = []; // карточки текущего раунда
+  let targetIdx = 0;
   let prevWord = null;
   let roundWord = null; // форма слова этого раунда: как спросили, так и хвалим
   let roundPhrase = null; // полная фраза вопроса — для повтора по пробелу
@@ -628,14 +689,41 @@
   // ударение/произношение, не меняя само слово в словаре и статистике
   const spokenMain = (item) => item.say || item.w;
 
+  // пересоздать карточки, если их число не совпадает с выбранным режимом
+  function ensureCards() {
+    if (cards.length === cardCount) return;
+    stage.textContent = '';
+    stage.classList.toggle('four', cardCount === 4);
+    cards = [];
+    for (let i = 0; i < cardCount; i++) {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        if (started) answer(i);
+      });
+      card.addEventListener('pointerup', (e) => {
+        e.stopPropagation();
+        firstTouch();
+      });
+      stage.appendChild(card);
+      cards.push(card);
+    }
+  }
+
   function newRound() {
     if (updateReady) { applyUpdate(); return; }
     busy = false;
+    ensureCards();
     const target = pickTarget();
-    let other;
-    do { other = pick(VOCAB); } while (other === target);
-    targetSide = Math.random() < 0.5 ? 0 : 1;
-    pair = targetSide === 0 ? [target, other] : [other, target];
+    const others = [];
+    while (others.length < cardCount - 1) {
+      const o = pick(VOCAB);
+      if (o !== target && !others.includes(o)) others.push(o);
+    }
+    targetIdx = Math.floor(Math.random() * cardCount);
+    items = others.slice();
+    items.splice(targetIdx, 0, target);
     prevWord = target.w;
     // форма слова на раунд: в четверти случаев синоним; для текста берём
     // написание без произносительных подсказок, для голоса — с ними
@@ -651,7 +739,7 @@
       card.textContent = '';
       const emoji = document.createElement('div');
       emoji.className = 'emoji';
-      emoji.textContent = pair[i].e;
+      emoji.textContent = items[i].e;
       card.append(emoji);
       void card.offsetWidth; // перезапуск pop-анимации
       card.classList.add('pop');
@@ -659,26 +747,29 @@
     speak(roundPhrase);
   }
 
-  function answer(side) {
-    if (!started || busy || !pair) return;
+  function answer(idx) {
+    if (!started || busy || !items.length || idx >= cardCount) return;
     busy = true;
-    if (side === targetSide) {
-      statFor(pair[targetSide].w).win++;
+    if (idx === targetIdx) {
+      statFor(items[targetIdx].w).win++;
       saveStats();
       winChime();
-      cards[side].classList.add('win');
-      cards[1 - side].classList.add('dim');
-      const rect = cards[side].getBoundingClientRect();
+      cards.forEach((c, j) => c.classList.add(j === idx ? 'win' : 'dim'));
+      const rect = cards[idx].getBoundingClientRect();
       spawnBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, 40);
       setTimeout(() => speak(makePraise(roundWord), () => setTimeout(newRound, 500)), 500);
     } else {
-      statFor(pair[targetSide].w).lose++;
+      statFor(items[targetIdx].w).lose++;
       saveStats();
       loseSound();
-      cards[side].classList.add('lose');
-      setTimeout(() => speak(`Нет, это — ${spokenMain(pair[side])}`, () => {
-        // показать правильную: она увеличивается, голос называет её
-        cards[targetSide].classList.add('reveal');
+      cards[idx].classList.add('lose');
+      setTimeout(() => speak(`Нет, это — ${spokenMain(items[idx])}`, () => {
+        // показать правильную: она увеличивается, голос называет её,
+        // остальные карточки притухают
+        cards.forEach((c, j) => {
+          if (j === targetIdx) c.classList.add('reveal');
+          else if (j !== idx) c.classList.add('dim');
+        });
         speak(`Вот это — ${roundWord}!`, () => setTimeout(newRound, 600));
       }), 400);
     }
@@ -723,25 +814,18 @@
     e.preventDefault();
     if (firstTouch()) return;
     if (e.repeat) return;
+    // стрелки — режим 2 карточек; цифры 1–4 работают в любом режиме
     if (e.key === 'ArrowLeft') answer(0);
-    else if (e.key === 'ArrowRight') answer(1);
-    else if (e.key === ' ' && !busy && pair) speak(roundPhrase);
+    else if (e.key === 'ArrowRight') answer(cardCount - 1);
+    else if (e.key >= '1' && e.key <= '4') answer(parseInt(e.key, 10) - 1);
+    else if (e.key === ' ' && !busy && items.length) speak(roundPhrase);
     else if (e.key === 'v' || e.key === 'V' || e.key === 'г' || e.key === 'Г') nextVoice();
   }, { passive: false });
 
-  // Разделение: разблокировка звука — по завершённому касанию (иначе iOS
-  // глушит речь; click при touch-action:none вообще не приходит), а ответ
-  // в игре — сразу по касанию, малыш может давить и держать сколько угодно.
-  cards.forEach((card, i) => {
-    card.addEventListener('pointerdown', (e) => {
-      e.stopPropagation();
-      if (started) answer(i);
-    });
-    card.addEventListener('pointerup', (e) => {
-      e.stopPropagation();
-      firstTouch();
-    });
-  });
+  // Разблокировка звука — по завершённому касанию (иначе iOS глушит речь;
+  // click при touch-action:none вообще не приходит), а ответ в игре — сразу
+  // по касанию (обработчики на карточках вешает ensureCards), малыш может
+  // давить и держать сколько угодно.
   window.addEventListener('pointerup', (e) => {
     if (e.target === nameInput) return; // тап по полю имени игру не запускает
     firstTouch();
