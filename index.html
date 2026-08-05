@@ -538,13 +538,17 @@
     else if (e.key === 'v' || e.key === 'V' || e.key === 'г' || e.key === 'Г') nextVoice();
   }, { passive: false });
 
-  // pointerup, не pointerdown и не click: iOS разрешает звук только по
-  // завершённому касанию, а click при touch-action:none там вообще не приходит
+  // Разделение: разблокировка звука — по завершённому касанию (иначе iOS
+  // глушит речь; click при touch-action:none вообще не приходит), а ответ
+  // в игре — сразу по касанию, малыш может давить и держать сколько угодно.
   cards.forEach((card, i) => {
+    card.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      if (started) answer(i);
+    });
     card.addEventListener('pointerup', (e) => {
       e.stopPropagation();
-      if (firstTouch()) return;
-      answer(i);
+      firstTouch();
     });
   });
   window.addEventListener('pointerup', () => { firstTouch(); });
