@@ -403,8 +403,9 @@
     do { o = pick(OPENERS); } while (o === lastOpener);
     lastOpener = o;
     // иногда хвалим по имени; имя — только в начале фразы через запятую:
-    // в конце перед «!» («Молодец, Артур!») синтезатор его прожёвывает
-    if (childName && Math.random() < 0.3) o = `${childName}, ${o.charAt(0).toLowerCase()}${o.slice(1)}`;
+    // в конце перед «!» («Молодец, Артур!») синтезатор его прожёвывает.
+    // Если имя уже было в вопросе этого раунда — в похвале не повторяем
+    if (childName && !nameInQuestion && Math.random() < 0.3) o = `${childName}, ${o.charAt(0).toLowerCase()}${o.slice(1)}`;
     let phrase = o;
     const r = Math.random();
     if (r < 0.25) phrase += ` Это — ${word}!`;
@@ -607,14 +608,17 @@
   let roundWord = null; // форма слова этого раунда: как спросили, так и хвалим
   let roundPhrase = null; // полная фраза вопроса — для повтора по пробелу
 
-  // вопрос звучит по-разному; иногда с обращением по имени
+  // вопрос звучит по-разному; иногда с обращением по имени.
+  // За раунд (вопрос → похвала) имя звучит не более одного раза
+  let nameInQuestion = false;
   function makeQuestion(word) {
     const r = Math.random();
     let q;
     if (r < 0.5) q = `Где — ${word}?`;
     else if (r < 0.8) q = `Покажи — ${accusative(word)}!`;
     else q = `Найди — ${accusative(word)}!`;
-    if (childName && Math.random() < 0.35) q = `${childName}, ${q}`;
+    nameInQuestion = !!childName && Math.random() < 0.35;
+    if (nameInQuestion) q = `${childName}, ${q}`;
     return q;
   }
 
