@@ -610,6 +610,8 @@
   let prevWord = null;
   let roundWord = null; // форма слова этого раунда: как спросили, так и хвалим
   let roundPhrase = null; // полная фраза вопроса — для повтора по пробелу
+  let updateReady = false; // свежая версия скачана, применим между раундами
+  let updating = false; // перезагрузка ради обновления — не показывать «выйти?»
 
   // вопрос звучит по-разному; иногда с обращением по имени.
   // За раунд (вопрос → похвала) имя звучит не более одного раза
@@ -631,6 +633,7 @@
   const spokenMain = (item) => item.say || item.w;
 
   function newRound() {
+    if (updateReady) { applyUpdate(); return; }
     busy = false;
     const target = pickTarget();
     let other;
@@ -753,12 +756,17 @@
   window.addEventListener('wheel', (e) => { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
   window.addEventListener('gesturestart', (e) => e.preventDefault());
   window.addEventListener('beforeunload', (e) => {
-    if (started) { e.preventDefault(); e.returnValue = ''; }
+    if (started && !updating) { e.preventDefault(); e.returnValue = ''; }
   });
 
   // ----- автообновление -----
   // Standalone-версия на домашнем экране iOS кэшируется намертво, поэтому при
   // запуске тянем свежий HTML в обход кэша и, если он изменился, перезагружаемся.
+  // Если игра уже идёт, не рвём раунд: обновимся на границе следующего раунда.
+  function applyUpdate() {
+    updating = true;
+    location.replace('./?u=' + new Date().getTime());
+  }
   async function checkForUpdate() {
     try {
       const res = await fetch('index.html', { cache: 'no-store' });
@@ -766,8 +774,10 @@
       const html = await res.text();
       const prev = localStorage.getItem('appHtml');
       localStorage.setItem('appHtml', html);
-      if (prev !== null && prev !== html && !started) {
-        location.replace('./?u=' + new Date().getTime());
+      if (prev !== null && prev !== html) {
+        updateReady = true;
+        dlog('update ready');
+        if (!started) applyUpdate();
       }
     } catch (err) { /* офлайн — играем как есть */ }
   }
