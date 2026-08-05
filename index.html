@@ -205,7 +205,7 @@
     { e: '🥛', w: 'молоко', alt: ['молочко'] },
     { e: '🧀', w: 'сыр' },
     { e: '🥚', w: 'яичко' },
-    { e: '🍦', w: 'мороженое' },
+    { e: '🍦', w: 'мороженое', say: 'моро́женое' },
     { e: '🍪', w: 'печенье', alt: ['печенька'] },
     { e: '🎂', w: 'тортик' },
     { e: '🍬', w: 'конфетка' },
@@ -286,7 +286,7 @@
     let p;
     do { p = pick(PRAISES); } while (p === lastPraise);
     lastPraise = p;
-    return Math.random() < 0.35 ? `${p} Это ${word}!` : p;
+    return Math.random() < 0.35 ? `${p} Это — ${word}!` : p;
   }
 
   // ----- звук -----
@@ -457,8 +457,11 @@
   let prevWord = null;
   let roundWord = null; // форма слова этого раунда: как спросили, так и хвалим
 
+  // как произносить слово: поле say позволяет подсказать синтезатору
+  // ударение/произношение, не меняя само слово в словаре и статистике
+  const spokenMain = (item) => item.say || item.w;
   // в четверти раундов вместо основного слова звучит синоним
-  const wordFormFor = (item) => (item.alt && Math.random() < 0.25) ? pick(item.alt) : item.w;
+  const wordFormFor = (item) => (item.alt && Math.random() < 0.25) ? pick(item.alt) : spokenMain(item);
 
   function newRound() {
     busy = false;
@@ -496,10 +499,10 @@
       saveStats();
       loseSound();
       cards[side].classList.add('lose');
-      setTimeout(() => speak(`Нет, это ${pair[side].w}`, () => {
+      setTimeout(() => speak(`Нет, это — ${spokenMain(pair[side])}`, () => {
         // показать правильную: она увеличивается, голос называет её
         cards[targetSide].classList.add('reveal');
-        speak(`Вот это ${roundWord}!`, () => setTimeout(newRound, 600));
+        speak(`Вот это — ${roundWord}!`, () => setTimeout(newRound, 600));
       }), 400);
     }
   }
