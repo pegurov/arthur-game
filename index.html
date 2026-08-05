@@ -23,6 +23,18 @@
   @supports (height: 100dvh) {
     html, body { height: 100dvh; }
   }
+  #question {
+    position: fixed;
+    top: 3vh;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font: 800 5.5vmin -apple-system, system-ui, sans-serif;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.95);
+    z-index: 15;
+  }
   #stage {
     position: fixed;
     inset: 0;
@@ -77,13 +89,15 @@
   /* телефон: картинки крупнее относительно экрана и дальше друг от друга */
   @media (max-width: 900px) and (orientation: landscape) {
     #stage { gap: 26vw; }
-    .card .emoji { font-size: min(48vh, 34vw); }
+    .card .emoji { font-size: min(44vh, 34vw); }
     .card .label { font-size: min(6vh, 4vw); }
+    #question { font-size: min(8vh, 5vw); top: 2vh; }
   }
   @media (max-width: 900px) and (orientation: portrait) {
-    #stage { flex-direction: column; gap: 10vh; }
-    .card .emoji { font-size: min(28vh, 60vw); }
+    #stage { flex-direction: column; gap: 9vh; }
+    .card .emoji { font-size: min(26vh, 56vw); }
     .card .label { font-size: min(3.4vh, 7vw); }
+    #question { font-size: min(3.8vh, 8vw); top: 2vh; }
   }
   #confetti {
     position: fixed;
@@ -117,6 +131,7 @@
 </style>
 </head>
 <body>
+<div id="question"></div>
 <div id="stage">
   <div class="card" id="card0"></div>
   <div class="card" id="card1"></div>
@@ -126,6 +141,7 @@
 <script>
 (() => {
   const cards = [document.getElementById('card0'), document.getElementById('card1')];
+  const questionEl = document.getElementById('question');
   const hint = document.getElementById('hint');
   const canvas = document.getElementById('confetti');
   const ctx = canvas.getContext('2d');
@@ -511,8 +527,6 @@
   // как произносить слово: поле say позволяет подсказать синтезатору
   // ударение/произношение, не меняя само слово в словаре и статистике
   const spokenMain = (item) => item.say || item.w;
-  // в четверти раундов вместо основного слова звучит синоним
-  const wordFormFor = (item) => (item.alt && Math.random() < 0.25) ? pick(item.alt) : spokenMain(item);
 
   function newRound() {
     busy = false;
@@ -522,7 +536,12 @@
     targetSide = Math.random() < 0.5 ? 0 : 1;
     pair = targetSide === 0 ? [target, other] : [other, target];
     prevWord = target.w;
-    roundWord = wordFormFor(target);
+    // форма слова на раунд: в четверти случаев синоним; для текста берём
+    // написание без произносительных подсказок, для голоса — с ними
+    const useAlt = !!(target.alt && Math.random() < 0.25);
+    const displayWord = useAlt ? pick(target.alt) : target.w;
+    roundWord = useAlt ? displayWord : spokenMain(target);
+    questionEl.textContent = `Где ${displayWord}?`;
 
     cards.forEach((card, i) => {
       card.className = 'card';
