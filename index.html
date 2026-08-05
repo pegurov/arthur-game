@@ -471,6 +471,9 @@
     dbgEl.textContent = (msg + ' | ' + dbgEl.textContent).slice(0, 400);
   }
 
+  // какая версия запущена: GH Pages отдаёт время сборки в Last-Modified
+  dlog(`build ${document.lastModified}`);
+
   // iOS 17+: без явного типа аудиосессии речь может глушиться при активном WebAudio
   try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (err) {}
 
