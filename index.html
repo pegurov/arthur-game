@@ -256,10 +256,14 @@
     { e: '🦶', w: 'ножка' },
     { e: '👀', w: 'глазки' },
   ];
-  const PRAISES = [
+  // похвала собирается из блоков: возглас + иногда «Это — X!» + иногда бустер
+  const OPENERS = [
     'Молодец!', 'Ура!', 'Правильно!', 'Умничка!', 'Точно!', 'Верно!',
-    'Супер!', 'Здорово!', 'Отлично!', 'Браво!', 'Вот это да!',
-    'Ура, нашёл!', 'Какой молодец!', 'Ты нашёл!',
+    'Супер!', 'Здорово!', 'Отлично!', 'Браво!', 'Вот это да!', 'Какой молодец!', 'Да!',
+  ];
+  const BOOSTERS = [
+    'Так держать!', 'Ты нашёл!', 'Отлично получается!', 'Ты просто супер!',
+    'Продолжаем!', 'Ты справился!', 'Дай пять!',
   ];
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
@@ -281,12 +285,21 @@
     return candidates[candidates.length - 1];
   }
 
-  let lastPraise = null;
+  let lastOpener = null;
+  let lastBooster = null;
   function makePraise(word) {
-    let p;
-    do { p = pick(PRAISES); } while (p === lastPraise);
-    lastPraise = p;
-    return Math.random() < 0.35 ? `${p} Это — ${word}!` : p;
+    let o;
+    do { o = pick(OPENERS); } while (o === lastOpener);
+    lastOpener = o;
+    let phrase = o;
+    if (Math.random() < 0.35) phrase += ` Это — ${word}!`;
+    if (Math.random() < 0.45) {
+      let b;
+      do { b = pick(BOOSTERS); } while (b === lastBooster);
+      lastBooster = b;
+      phrase += ` ${b}`;
+    }
+    return phrase;
   }
 
   // ----- звук -----
