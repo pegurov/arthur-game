@@ -537,7 +537,7 @@
       void card.offsetWidth; // перезапуск pop-анимации
       card.classList.add('pop');
     });
-    speak(`Где ${roundWord}?`);
+    speak(`Где — ${roundWord}?`);
   }
 
   function answer(side) {
@@ -598,7 +598,7 @@
     if (e.repeat) return;
     if (e.key === 'ArrowLeft') answer(0);
     else if (e.key === 'ArrowRight') answer(1);
-    else if (e.key === ' ' && !busy && pair) speak(`Где ${roundWord}?`);
+    else if (e.key === ' ' && !busy && pair) speak(`Где — ${roundWord}?`);
     else if (e.key === 'v' || e.key === 'V' || e.key === 'г' || e.key === 'Г') nextVoice();
   }, { passive: false });
 
