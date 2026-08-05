@@ -353,7 +353,7 @@
     ruVoices = all.filter(v => (v.lang || '').toLowerCase().startsWith('ru'));
     dlog(`voices:${all.length} ru:${ruVoices.length}`);
     // Google-голос обычно живее Милены, премиум-голоса лучше базовых
-    const score = (v) => /google/i.test(v.name) ? 0 : /enhanced|premium|премиум/i.test(v.name) ? 1 : 2;
+    const score = (v) => /google/i.test(v.name) ? 0 : /enhanced|premium|премиум|улучшен/i.test(v.name) ? 1 : 2;
     ruVoices.sort((a, b) => score(a) - score(b));
     const saved = localStorage.getItem('arthurVoice');
     const idx = ruVoices.findIndex(v => v.name === saved);
@@ -559,6 +559,26 @@
   window.addEventListener('gesturestart', (e) => e.preventDefault());
   window.addEventListener('beforeunload', (e) => {
     if (started) { e.preventDefault(); e.returnValue = ''; }
+  });
+
+  // ----- автообновление -----
+  // Standalone-версия на домашнем экране iOS кэшируется намертво, поэтому при
+  // запуске тянем свежий HTML в обход кэша и, если он изменился, перезагружаемся.
+  async function checkForUpdate() {
+    try {
+      const res = await fetch('index.html', { cache: 'no-store' });
+      if (!res.ok) return;
+      const html = await res.text();
+      const prev = localStorage.getItem('appHtml');
+      localStorage.setItem('appHtml', html);
+      if (prev !== null && prev !== html && !started) {
+        location.replace('./?u=' + new Date().getTime());
+      }
+    } catch (err) { /* офлайн — играем как есть */ }
+  }
+  checkForUpdate();
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') checkForUpdate();
   });
 })();
 </script>
