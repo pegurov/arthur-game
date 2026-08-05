@@ -25,7 +25,7 @@
   }
   #question {
     position: fixed;
-    top: 3vh;
+    top: calc(env(safe-area-inset-top, 0px) + 2vh);
     left: 0;
     right: 0;
     text-align: center;
@@ -91,13 +91,13 @@
     #stage { gap: 26vw; }
     .card .emoji { font-size: min(44vh, 34vw); }
     .card .label { font-size: min(6vh, 4vw); }
-    #question { font-size: min(8vh, 5vw); top: 2vh; }
+    #question { font-size: min(8vh, 5vw); top: calc(env(safe-area-inset-top, 0px) + 2vh); }
   }
   @media (max-width: 900px) and (orientation: portrait) {
     #stage { flex-direction: column; gap: 9vh; }
     .card .emoji { font-size: min(26vh, 56vw); }
     .card .label { font-size: min(3.4vh, 7vw); }
-    #question { font-size: min(3.8vh, 8vw); top: 2vh; }
+    #question { font-size: min(3.8vh, 8vw); top: calc(env(safe-area-inset-top, 0px) + 1.5vh); }
   }
   #confetti {
     position: fixed;
