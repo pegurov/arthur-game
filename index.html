@@ -402,8 +402,9 @@
     let o;
     do { o = pick(OPENERS); } while (o === lastOpener);
     lastOpener = o;
-    // иногда хвалим по имени: «Молодец, Артур!»
-    if (childName && Math.random() < 0.3) o = o.slice(0, -1) + `, ${childName}!`;
+    // иногда хвалим по имени; имя — только в начале фразы через запятую:
+    // в конце перед «!» («Молодец, Артур!») синтезатор его прожёвывает
+    if (childName && Math.random() < 0.3) o = `${childName}, ${o.charAt(0).toLowerCase()}${o.slice(1)}`;
     let phrase = o;
     const r = Math.random();
     if (r < 0.25) phrase += ` Это — ${word}!`;
@@ -498,7 +499,7 @@
     voiceIdx = (voiceIdx + 1) % ruVoices.length;
     ruVoice = ruVoices[voiceIdx];
     localStorage.setItem('arthurVoice', ruVoice.name);
-    speak(`Привет, ${childName || 'малыш'}! Давай играть!`);
+    speak(`${childName || 'Малыш'}, привет! Давай играть!`);
   }
   let lastUtterance = null; // держим ссылку: iOS обрывает речь, если utterance собрал GC
   function speak(text, onend) {
