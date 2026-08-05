@@ -32,11 +32,22 @@
     gap: 22vmin;
   }
   .card {
-    font-size: 34vmin;
-    line-height: 1.2;
+    text-align: center;
     cursor: pointer;
     will-change: transform;
     transition: transform 0.5s, opacity 0.4s, filter 0.5s;
+  }
+  .card .emoji {
+    display: block;
+    font-size: 34vmin;
+    line-height: 1.2;
+  }
+  .card .label {
+    margin-top: 1vmin;
+    font: 800 4.5vmin -apple-system, system-ui, sans-serif;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.85);
   }
   .card.pop {
     animation: pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -66,11 +77,13 @@
   /* телефон: картинки крупнее относительно экрана и дальше друг от друга */
   @media (max-width: 900px) and (orientation: landscape) {
     #stage { gap: 26vw; }
-    .card { font-size: min(52vh, 34vw); }
+    .card .emoji { font-size: min(48vh, 34vw); }
+    .card .label { font-size: min(6vh, 4vw); }
   }
   @media (max-width: 900px) and (orientation: portrait) {
-    #stage { flex-direction: column; gap: 12vh; }
-    .card { font-size: min(30vh, 60vw); }
+    #stage { flex-direction: column; gap: 10vh; }
+    .card .emoji { font-size: min(28vh, 60vw); }
+    .card .label { font-size: min(3.4vh, 7vw); }
   }
   #confetti {
     position: fixed;
@@ -513,7 +526,14 @@
 
     cards.forEach((card, i) => {
       card.className = 'card';
-      card.textContent = pair[i].e;
+      card.textContent = '';
+      const emoji = document.createElement('div');
+      emoji.className = 'emoji';
+      emoji.textContent = pair[i].e;
+      const label = document.createElement('div');
+      label.className = 'label';
+      label.textContent = pair[i].w;
+      card.append(emoji, label);
       void card.offsetWidth; // перезапуск pop-анимации
       card.classList.add('pop');
     });
