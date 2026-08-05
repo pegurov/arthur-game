@@ -538,16 +538,16 @@
     else if (e.key === 'v' || e.key === 'V' || e.key === 'г' || e.key === 'Г') nextVoice();
   }, { passive: false });
 
-  // именно click, не pointerdown: iOS разрешает звук и речь только
-  // по завершённому касанию (touchend/click), на pointerdown они глушатся
+  // pointerup, не pointerdown и не click: iOS разрешает звук только по
+  // завершённому касанию, а click при touch-action:none там вообще не приходит
   cards.forEach((card, i) => {
-    card.addEventListener('click', (e) => {
+    card.addEventListener('pointerup', (e) => {
       e.stopPropagation();
       if (firstTouch()) return;
       answer(i);
     });
   });
-  window.addEventListener('click', () => { firstTouch(); });
+  window.addEventListener('pointerup', () => { firstTouch(); });
 
   // защита от случайных жестов и закрытия
   window.addEventListener('contextmenu', (e) => e.preventDefault());
