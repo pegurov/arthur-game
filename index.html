@@ -352,6 +352,7 @@
     if (!('speechSynthesis' in window)) { if (onend) setTimeout(onend, 800); return; }
     const doSpeak = () => {
       try {
+        speechSynthesis.resume(); // iOS порой держит движок на паузе
         const u = new SpeechSynthesisUtterance(text);
         lastUtterance = u;
         u.lang = 'ru-RU';
@@ -511,14 +512,16 @@
     else if (e.key === 'v' || e.key === 'V' || e.key === 'г' || e.key === 'Г') nextVoice();
   }, { passive: false });
 
+  // именно click, не pointerdown: iOS разрешает звук и речь только
+  // по завершённому касанию (touchend/click), на pointerdown они глушатся
   cards.forEach((card, i) => {
-    card.addEventListener('pointerdown', (e) => {
+    card.addEventListener('click', (e) => {
       e.stopPropagation();
       if (firstTouch()) return;
       answer(i);
     });
   });
-  window.addEventListener('pointerdown', () => { firstTouch(); });
+  window.addEventListener('click', () => { firstTouch(); });
 
   // защита от случайных жестов и закрытия
   window.addEventListener('contextmenu', (e) => e.preventDefault());
