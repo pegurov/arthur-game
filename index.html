@@ -78,6 +78,17 @@
     pointer-events: none;
     z-index: 10;
   }
+  #dbg {
+    position: fixed;
+    left: 6px;
+    right: 6px;
+    bottom: 6px;
+    font: 11px/1.4 monospace;
+    color: #8f8;
+    z-index: 30;
+    pointer-events: none;
+    word-break: break-all;
+  }
   #hint {
     position: fixed;
     left: 50%;
@@ -321,12 +332,26 @@
     setTimeout(() => playTone(261.63, { peak: 0.12, dur: 1.0, type: 'sine', shimmer: false }), 220);
   }
 
+  // ----- диагностика речи: открой страницу с ?debug=1 -----
+  const DEBUG = location.search.indexOf('debug') !== -1;
+  let dbgEl = null;
+  function dlog(msg) {
+    if (!DEBUG) return;
+    if (!dbgEl) { dbgEl = document.createElement('div'); dbgEl.id = 'dbg'; document.body.appendChild(dbgEl); }
+    dbgEl.textContent = (msg + ' | ' + dbgEl.textContent).slice(0, 400);
+  }
+
+  // iOS 17+: без явного типа аудиосессии речь может глушиться при активном WebAudio
+  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (err) {}
+
   // ----- речь -----
   let ruVoice = null;
   let ruVoices = [];
   let voiceIdx = 0;
   function pickVoice() {
-    ruVoices = speechSynthesis.getVoices().filter(v => (v.lang || '').toLowerCase().startsWith('ru'));
+    const all = speechSynthesis.getVoices();
+    ruVoices = all.filter(v => (v.lang || '').toLowerCase().startsWith('ru'));
+    dlog(`voices:${all.length} ru:${ruVoices.length}`);
     // Google-голос обычно живее Милены, премиум-голоса лучше базовых
     const score = (v) => /google/i.test(v.name) ? 0 : /enhanced|premium|премиум/i.test(v.name) ? 1 : 2;
     ruVoices.sort((a, b) => score(a) - score(b));
@@ -359,15 +384,16 @@
         if (ruVoice) u.voice = ruVoice;
         u.rate = 0.85;
         u.pitch = 1.1;
-        if (onend) {
-          let done = false;
-          const finish = () => { if (!done) { done = true; onend(); } };
-          u.onend = finish;
-          u.onerror = finish;
-          setTimeout(finish, 6000); // страховка, если браузер не пришлёт onend
-        }
+        u.volume = 1;
+        let done = false;
+        const finish = () => { if (!done) { done = true; if (onend) onend(); } };
+        u.onstart = () => dlog(`▶ ${text}`);
+        u.onend = () => { dlog('✓ конец'); finish(); };
+        u.onerror = (e) => { dlog(`✗ ${e.error || 'ошибка'}`); finish(); };
+        if (onend) setTimeout(finish, 6000); // страховка, если браузер не пришлёт onend
         speechSynthesis.speak(u);
-      } catch (err) { if (onend) onend(); }
+        dlog(`spk "${text}" голос:${ruVoice ? ruVoice.name : 'дефолт'}`);
+      } catch (err) { dlog(`throw ${err.message}`); if (onend) onend(); }
     };
     // iOS: cancel() при пустой очереди глушит следующую фразу,
     // поэтому отменяем только занятую очередь, и говорим после паузы
