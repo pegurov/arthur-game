@@ -381,7 +381,10 @@
         const u = new SpeechSynthesisUtterance(text);
         lastUtterance = u;
         u.lang = 'ru-RU';
-        if (ruVoice) u.voice = ruVoice;
+        // iOS не отдаёт улучшенные голоса в веб-список; если русский голос
+        // в списке один, не навязываем его — по одному лишь lang движок берёт
+        // системный голос по умолчанию (может оказаться улучшенной Миленой)
+        if (ruVoice && ruVoices.length > 1) u.voice = ruVoice;
         u.rate = 0.85;
         u.pitch = 1.1;
         u.volume = 1;
