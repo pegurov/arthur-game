@@ -101,8 +101,15 @@
     #question { font-size: min(8vh, 5vw); top: calc(env(safe-area-inset-top, 0px) + 2vh); }
   }
   @media (max-width: 900px) and (orientation: portrait) {
-    #stage { flex-direction: column; gap: 9vh; }
-    .card .emoji { font-size: min(26vh, 56vw); }
+    #stage {
+      flex-direction: column;
+      gap: 6vh;
+      /* сверху зарезервировано место под заголовок вопроса */
+      box-sizing: border-box;
+      padding-top: calc(env(safe-area-inset-top, 0px) + 10vh);
+      padding-bottom: 2vh;
+    }
+    .card .emoji { font-size: min(23vh, 56vw); }
     .card .label { font-size: min(3.4vh, 7vw); }
     #question { font-size: min(3.8vh, 8vw); top: calc(env(safe-area-inset-top, 0px) + 1.5vh); }
   }
