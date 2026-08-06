@@ -679,6 +679,10 @@
   let roundPhrase = null; // полная фраза вопроса — для повтора по пробелу
   let updateReady = false; // свежая версия скачана, применим между раундами
   let updating = false; // перезагрузка ради обновления — не показывать «выйти?»
+  let questionLock = false; // пока звучит вопрос, ответы не принимаются
+  let qGen = 0; // поколение вопроса: повтор по пробелу не снимает чужой замок
+  let roundNo = 0; // палец, зажатый с прошлого раунда, ответом не считается
+  const activePointers = new Map(); // id → {x, y, round}: все пальцы на экране
 
   // вопрос звучит по-разному; иногда с обращением по имени
   // (имя — только в вопросе, всегда в начале фразы через запятую)
@@ -718,9 +722,35 @@
     }
   }
 
+  // какая карточка сейчас под точкой экрана: iOS «прибивает» тач-события
+  // к элементу первого касания, поэтому карточку ищем сами по координатам
+  function cardAt(x, y) {
+    const el = document.elementFromPoint(x, y);
+    const card = el && el.closest('.card');
+    return card ? cards.indexOf(card) : -1;
+  }
+
+  // малыш иногда жмёт, не дослушав вопрос — на время читки ввод игнорируем.
+  // Когда дочитали: если палец уже стоит на карточке, засчитываем его сразу
+  // (малыш держит и ждёт, лифтовать палец он не догадается)
+  function speakQuestion() {
+    const gen = ++qGen;
+    questionLock = true;
+    speak(roundPhrase, () => {
+      if (gen !== qGen) return;
+      questionLock = false;
+      for (const p of activePointers.values()) {
+        if (p.round !== roundNo) continue;
+        const i = cardAt(p.x, p.y);
+        if (i >= 0) { answer(i); break; }
+      }
+    });
+  }
+
   function newRound() {
     if (updateReady) { applyUpdate(); return; }
     busy = false;
+    roundNo++;
     ensureCards();
     const target = pickTarget();
     const others = [];
@@ -751,11 +781,11 @@
       void card.offsetWidth; // перезапуск pop-анимации
       card.classList.add('pop');
     });
-    speak(roundPhrase);
+    speakQuestion();
   }
 
   function answer(idx) {
-    if (!started || busy || !items.length || idx >= cardCount) return;
+    if (!started || busy || questionLock || !items.length || idx >= cardCount) return;
     busy = true;
     if (idx === targetIdx) {
       statFor(items[targetIdx].w).win++;
@@ -825,7 +855,7 @@
     if (e.key === 'ArrowLeft') answer(0);
     else if (e.key === 'ArrowRight') answer(cardCount - 1);
     else if (e.key >= '1' && e.key <= '4') answer(parseInt(e.key, 10) - 1);
-    else if (e.key === ' ' && !busy && items.length) speak(roundPhrase);
+    else if (e.key === ' ' && !busy && items.length) speakQuestion();
     else if (e.key === 'v' || e.key === 'V' || e.key === 'г' || e.key === 'Г') nextVoice();
   }, { passive: false });
 
@@ -837,6 +867,28 @@
     if (e.target === nameInput) return; // тап по полю имени игру не запускает
     firstTouch();
   });
+
+  // Палец часто садится рядом с картинкой и заезжает на неё уже в движении.
+  // Тач-события при этом остаются у элемента первого касания (implicit
+  // pointer capture), поэтому следим за всеми пальцами глобально на capture-фазе
+  // (stopPropagation на карточках и кнопках сюда не достаёт) и карточку под
+  // пальцем находим сами. Касание считается только в том раунде, где началось.
+  window.addEventListener('pointerdown', (e) => {
+    if (e.target === nameInput) return;
+    activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY, round: roundNo });
+  }, true);
+  window.addEventListener('pointermove', (e) => {
+    const p = activePointers.get(e.pointerId);
+    if (!p) return;
+    p.x = e.clientX;
+    p.y = e.clientY;
+    if (started && p.round === roundNo) {
+      const i = cardAt(p.x, p.y);
+      if (i >= 0) answer(i);
+    }
+  }, true);
+  ['pointerup', 'pointercancel'].forEach((ev) =>
+    window.addEventListener(ev, (e) => activePointers.delete(e.pointerId), true));
 
   // защита от случайных жестов и закрытия
   window.addEventListener('contextmenu', (e) => e.preventDefault());
